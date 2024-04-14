@@ -8,17 +8,20 @@ import { Firestore, collection, deleteDoc, doc, onSnapshot, addDoc, updateDoc, q
 export class NoteListService {
   normalNotes: Note[] = [];
   trashNotes: Note[] = [];
+  markedNotes: Note[] = [];
   // items$;
   // items;
 
   unsubNotes;
   unsubTrash;
+  unsubMarkedNotes;
   firestore: Firestore = inject(Firestore);
 
   constructor() {
 
     this.unsubNotes = this.subNotesList();
     this.unsubTrash = this.subTrashList();
+    this.unsubMarkedNotes = this.subMarkedNotesList();
     // this.unsubSingle = onSnapshot(this.getSingleDocRef('notes', 'njJeVZPAmb0ChTEr8FAb'), (element) => {  // onSnapshot ha bisogno di una referenza e di una funzione
     //   console.log(element.ref);
     // });
@@ -60,25 +63,47 @@ export class NoteListService {
   }
 
   subNotesList() {
-    const q = query(this.getNotesRef(), where("state", "==", "CA"), orderBy('title'), limit(3))
+    const q = query(this.getNotesRef(), limit(4))
     return onSnapshot(q, (list) => {  // onSnapshot ha bisogno di una referenza e di una funzione
       this.normalNotes = [];
       list.forEach((el) => {
         this.normalNotes.push(this.setNotesObject(el.data(), el.id)); // 
       })
+      list.docChanges().forEach((change) => {
+        if (change.type === "added") {
+          console.log("New note: ", change.doc.data());
+        }
+        if (change.type === "modified") {
+          console.log("Modified note: ", change.doc.data());
+        }
+        if (change.type === "removed") {
+          console.log("Removed note: ", change.doc.data());
+        }
+      })
     });
   }
-  //   // subNotesList() {
-  //     return onSnapshot(this.getNotesRef(), (list) => {  // onSnapshot ha bisogno di una referenza e di una funzione
+
+  subMarkedNotesList() {
+    const q = query(this.getNotesRef(), where('marked', '==', true), limit(4))
+    return onSnapshot(q, (list) => {  // onSnapshot ha bisogno di una referenza e di una funzione
+      this.markedNotes = [];
+      list.forEach((el) => {
+        this.markedNotes.push(this.setNotesObject(el.data(), el.id));
+      })
+    });
+  }
+
+  // subNotesList() {
+  //   return onSnapshot(this.getNotesRef(), (list) => {  // onSnapshot ha bisogno di una referenza e di una funzione
   //     this.normalNotes = [];
   //     list.forEach((el) => {
   //       this.normalNotes.push(this.setNotesObject(el.data(), el.id)); // 
   //     })
   //   });
-  // // }
+  // }
 
   subTrashList() {
-    return onSnapshot(this.getNotesRef(), (list) => {  // onSnapshot ha bisogno di una referenza e di una funzione
+    return onSnapshot(this.getTrashRef(), (list) => {  // onSnapshot ha bisogno di una referenza e di una funzione
       this.trashNotes = [];
       list.forEach((el) => {
         this.trashNotes.push(this.setNotesObject(el.data(), el.id)); // 
@@ -125,6 +150,7 @@ export class NoteListService {
   ngOnDestroy() {
     this.unsubNotes(); // unsubscribe
     this.unsubTrash(); // unsubscribe
+    this.unsubMarkedNotes();
     // this.items.unsubscribe(); // operazione da svolgere alla fine
   }
 

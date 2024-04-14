@@ -27,7 +27,11 @@ export class AddNoteDialogComponent {
       content: this.content,
       marked: false,
     }
-    this.noteService.addNotes(note, 'notes');
+    if(note.type == 'note'){
+      this.noteService.addNotes(note, 'notes');
+    } else {
+      this.noteService.addNotes(note, 'trash')
+    }
     //beachte das closeDialog() zum Schluss kommt, denn es leert die Variablen
     this.closeDialog();
   }
